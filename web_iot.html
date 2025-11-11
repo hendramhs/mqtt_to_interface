@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard IoT Sensor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f6f8fa;
+        --text: #1f2328;
+        --muted: #667085;
+        --surface: #ffffff;
+        --primary: #007bff;
+        --primary-accent: linear-gradient(90deg, #007bff, #00b3ff);
+        --radius: 12px;
+        --shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+        --gap: 16px;
+        --chart-grid: rgba(0, 0, 0, 0.08);
+        --chart-ticks: #6b7280;
+        --danger: #dc2626;
+        --success: #16a34a;
+        --warn: #f59e0b;
+        --surface-alt: #f0f4f8;
+        --gradient-card: linear-gradient(145deg, #ffffff, #f0f4f8);
+        --skeleton: linear-gradient(
+          90deg,
+          rgba(0, 0, 0, 0.04),
+          rgba(0, 0, 0, 0.08),
+          rgba(0, 0, 0, 0.04)
+        );
+      }
+      body.dark {
+        --bg: #0f172a;
+        --text: #e5e7eb;
+        --muted: #94a3b8;
+        --surface: #111827;
+        --primary: #3b82f6;
+        --primary-accent: linear-gradient(90deg, #2563eb, #06b6d4);
+        --shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+        --chart-grid: rgba(255, 255, 255, 0.15);
+        --chart-ticks: #cfd8e3;
+        --surface-alt: #1e293b;
+        --gradient-card: linear-gradient(145deg, #1e293b, #111827);
+        --skeleton: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.06),
+          rgba(255, 255, 255, 0.15),
+          rgba(255, 255, 255, 0.06)
+        );
+      }
+
+      body {
+        margin: 0;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans",
+          "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+        transition: background 0.5s ease, color 0.5s ease;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      h1 {
+        color: var(--text);
+        font-size: 1.6rem;
+        margin: 0;
+      }
+      .btn {
+        border: 1px solid transparent;
+        background: var(--surface-alt);
+        color: var(--text);
+        padding: 8px 12px;
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        cursor: pointer;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: transform 0.12s ease, background 0.3s ease,
+          border-color 0.3s ease;
+      }
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--surface-alt);
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        color: var(--muted);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+      }
+      body.dark .status-pill {
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--muted);
+        position: relative;
+      }
+      .status-pill.online .status-dot {
+        background: var(--success);
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+      }
+      .status-pill.offline .status-dot {
+        background: var(--danger);
+        box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15);
+      }
+      .status-pill.sync .status-dot {
+        background: var(--warn);
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25);
+        animation: pulse 1.2s infinite ease-in-out;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(0.5);
+          opacity: 0.6;
+        }
+      }
+
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: var(--gap);
+        margin: 12px 0 20px;
+      }
+
+      .card {
+        position: relative;
+        background: var(--gradient-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 18px 18px 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 130px;
+        overflow: hidden;
+        isolation: isolate;
+        transition: transform 0.35s cubic-bezier(0.4, 0.2, 0.2, 1),
+          box-shadow 0.4s ease;
+      }
+      .card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.55),
+          rgba(255, 255, 255, 0)
+        );
+        opacity: 0.4;
+        pointer-events: none;
+        mix-blend-mode: overlay;
+      }
+      body.dark .card::before {
+        background: linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.08),
+          rgba(255, 255, 255, 0)
+        );
+        opacity: 0.35;
+      }
+      .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.15);
+      }
+      body.dark .card:hover {
+        box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.6);
+      }
+      .card h2 {
+        font-size: 0.95rem;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin: 0 0 6px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .value {
+        font-size: 1.8em;
+        font-weight: bold;
+        margin: 10px 0 0;
+        line-height: 1;
+      }
+      .value.skeleton {
+        position: relative;
+        color: transparent;
+      }
+      .value.skeleton::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--skeleton);
+        background-size: 200% 100%;
+        animation: shimmer 1.2s infinite;
+        border-radius: 6px;
+      }
+      @keyframes shimmer {
+        0% {
+          background-position: 0 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+      .time {
+        color: var(--muted);
+        font-size: 0.9em;
+        text-align: center;
+      }
+
+      /* Chart container styles */
+      .charts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: var(--gap);
+      }
+      .chart-card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 18px 18px 14px;
+        min-height: 280px;
+        display: flex;
+        flex-direction: column;
+        transition: box-shadow 0.3s ease, transform 0.3s ease;
+      }
+      .chart-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.16);
+      }
+      body.dark .chart-card:hover {
+        box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.55);
+      }
+      .chart-card h3 {
+        margin-top: 0;
+        margin-bottom: 12px;
+        color: var(--text);
+        font-size: 1.05em;
+        font-weight: 600;
+      }
+      .chart-wrapper {
+        position: relative;
+        width: 100%;
+        height: 220px;
+      }
+
+      .section-title {
+        margin: 24px 0 8px;
+      }
+
+      .table-responsive {
+        background: var(--surface);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        overflow-x: auto;
+        position: relative;
+      }
+      .table-responsive::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        border-radius: 14px;
+      }
+      body.dark .table-responsive::before {
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        min-width: 640px;
+      }
+      thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+      th,
+      td {
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+      }
+      body.dark th,
+      body.dark td {
+        border-bottom-color: rgba(255, 255, 255, 0.1);
+      }
+      th {
+        background: var(--primary);
+        background-image: var(--primary-accent);
+        color: #fff;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+      }
+      tbody tr:nth-child(even) {
+        background: rgba(0, 0, 0, 0.015);
+      }
+      body.dark tbody tr:nth-child(even) {
+        background: rgba(255, 255, 255, 0.03);
+      }
+      tbody tr:hover {
+        background: rgba(0, 0, 0, 0.05);
+      }
+      body.dark tbody tr:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      /* Chips */
+      #month-list {
+        list-style: none;
+        padding: 0;
+        margin: 8px 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      #month-list li {
+        background: var(--surface-alt);
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        color: var(--muted);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+      }
+      body.dark #month-list li {
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+      #month-list li:hover {
+        color: var(--text);
+      }
+
+      /* Smooth transitions */
+      .card,
+      .chart-card,
+      .table-responsive,
+      .btn,
+      .status-pill,
+      #month-list li {
+        transition: background 0.5s ease, color 0.5s ease,
+          border-color 0.5s ease;
+      }
+      .charts canvas {
+        transition: filter 0.4s ease;
+      }
+      body.dark .charts canvas {
+        filter: brightness(0.92);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="topbar">
+        <h1>Dashboard IoT Sensor</h1>
+        <div style="display: flex; align-items: center; gap: 10px">
+          <div id="status-conn" class="status-pill offline">
+            <span class="status-dot"></span
+            ><span id="status-text">OFFLINE</span>
+          </div>
+          <button id="toggle-theme" class="btn" title="Toggle dark mode">
+            🌙
+          </button>
+        </div>
+      </header>
+
+      <section class="metrics-grid">
+        <div class="card">
+          <h2>Suhu Saat Ini</h2>
+          <div id="suhu" class="value skeleton">-- °C</div>
+        </div>
+
+        <div class="card">
+          <h2>Kelembapan</h2>
+          <div id="kelembaban" class="value skeleton">-- %</div>
+        </div>
+
+        <div class="card">
+          <h2>Kecerahan</h2>
+          <div id="ldr" class="value skeleton">--</div>
+        </div>
+
+        <div class="card">
+          <h2>Suhu Max</h2>
+          <div id="suhumax" class="value skeleton">-- °C</div>
+        </div>
+
+        <div class="card">
+          <h2>Suhu Min</h2>
+          <div id="suhumin" class="value skeleton">-- °C</div>
+        </div>
+
+        <div class="card">
+          <h2>Suhu Rata-rata</h2>
+          <div id="suhurata" class="value skeleton">-- °C</div>
+        </div>
+      </section>
+      
+      <div style="margin-top:20px; text-align:center;">
+        <button onclick="kirimRelay('ON')" style="padding:10px 20px; background-color:green; color:white; border:none; border-radius:8px;">ON</button>
+        <button onclick="kirimRelay('OFF')" style="padding:10px 20px; background-color:red; color:white; border:none; border-radius:8px;">OFF</button>
+      </div>
+
+      <h2 class="section-title">📈 Grafik </h2>
+      <div class="charts">
+        <div class="chart-card">
+          <h3>Suhu (°C)</h3>
+          <div class="chart-wrapper">
+            <canvas id="chartSuhu"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Kelembapan (%)</h3>
+          <div class="chart-wrapper">
+            <canvas id="chartKelembaban"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Kecerahan</h3>
+          <div class="chart-wrapper">
+            <canvas id="chartLdr"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <p class="time" id="update-time">Memuat data...</p>
+
+      <h2 class="section-title">📅 Month-Year Max</h2>
+      <ul id="month-list"></ul>
+
+      <h2 class="section-title">📊 Nilai Suhu Max & Humid Max</h2>
+      <div class="table-responsive">
+        <table id="tabel-nilai">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Idx</th>
+              <th>Suhu (°C)</th>
+              <th>Humid (%)</th>
+              <th>Kecerahan</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <!-- Chart.js -->
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+      <script>
+        const API_URL = "http://localhost:5000/";
+        const THEME_KEY = "theme";
+
+        function getCssVar(name) {
+          return getComputedStyle(document.body).getPropertyValue(name).trim();
+        }
+
+        function applyTheme(theme) {
+          const isDark = theme === "dark";
+          document.body.classList.toggle("dark", isDark);
+          const btn = document.getElementById("toggle-theme");
+          if (btn) btn.textContent = isDark ? "☀️" : "🌙";
+          // Update chart colors when theme changes
+          [chartSuhu, chartKelembaban, chartLdr].forEach(
+            (ch) => ch && updateChartTheme(ch)
+          );
+        }
+
+        function initTheme() {
+          const saved = localStorage.getItem(THEME_KEY) || "light";
+          applyTheme(saved);
+        }
+
+        function setStatus(state) {
+          const wrap = document.getElementById("status-conn");
+          const txt = document.getElementById("status-text");
+          if (!wrap || !txt) return;
+          wrap.classList.remove("online", "offline", "sync");
+          if (state === "online") {
+            wrap.classList.add("online");
+            txt.textContent = "ONLINE";
+          } else if (state === "sync") {
+            wrap.classList.add("sync");
+            txt.textContent = "SYNC...";
+          } else {
+            wrap.classList.add("offline");
+            txt.textContent = "OFFLINE";
+          }
+        }
+
+        // Data buffers for charts (keep last N points)
+        const MAX_POINTS = 50;
+        const labels = [];
+        const dataSuhu = [];
+        const dataKelembaban = [];
+        const dataLdr = [];
+
+        // Chart instances
+        let chartSuhu, chartKelembaban, chartLdr;
+
+        function createLineChart(ctx, label, color, unit) {
+          return new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: label,
+                  data: [],
+                  borderColor: color,
+                  backgroundColor: color + "33",
+                  tension: 0.25,
+                  pointRadius: 2,
+                  fill: true,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) => `${ctx.parsed.y}${unit ? " " + unit : ""}`,
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  ticks: {
+                    autoSkip: true,
+                    maxTicksLimit: 6,
+                    color: getCssVar("--chart-ticks"),
+                  },
+                  grid: { color: getCssVar("--chart-grid") },
+                },
+                y: {
+                  beginAtZero: true,
+                  ticks: { color: getCssVar("--chart-ticks") },
+                  grid: { color: getCssVar("--chart-grid") },
+                },
+              },
+            },
+          });
+        }
+
+        function updateChartTheme(chart) {
+          const tickColor = getCssVar("--chart-ticks");
+          const gridColor = getCssVar("--chart-grid");
+          chart.options.scales.x.ticks.color = tickColor;
+          chart.options.scales.y.ticks.color = tickColor;
+          if (chart.options.scales.x.grid)
+            chart.options.scales.x.grid.color = gridColor;
+          if (chart.options.scales.y.grid)
+            chart.options.scales.y.grid.color = gridColor;
+          chart.update("none");
+        }
+
+        function initCharts() {
+          const ctxSuhu = document.getElementById("chartSuhu").getContext("2d");
+          const ctxKelembaban = document
+            .getElementById("chartKelembaban")
+            .getContext("2d");
+          const ctxLdr = document.getElementById("chartLdr").getContext("2d");
+
+          chartSuhu = createLineChart(ctxSuhu, "Suhu (°C)", "#ff6384", "°C");
+          chartKelembaban = createLineChart(
+            ctxKelembaban,
+            "Kelembapan (%)",
+            "#36a2eb",
+            "%"
+          );
+          chartLdr = createLineChart(ctxLdr, "LDR", "#ff9f40", "");
+        }
+
+        function pushAndTrim(arr, value) {
+          arr.push(value);
+          if (arr.length > MAX_POINTS) arr.shift();
+        }
+
+        async function fetchData() {
+          try {
+            setStatus("sync");
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            setStatus("online");
+
+            // Data utama
+            const elSuhu = document.getElementById("suhu");
+            elSuhu.textContent = data.suhu + " °C";
+            elSuhu.classList.remove("skeleton");
+            document.getElementById("kelembaban").textContent =
+              data.humid + " %";
+            document.getElementById("kelembaban").classList.remove("skeleton");
+            document.getElementById("ldr").textContent = data.kecerahan;
+            document.getElementById("ldr").classList.remove("skeleton");
+            document.getElementById("suhumax").textContent =
+              data.suhumax + " °C";
+            document.getElementById("suhumax").classList.remove("skeleton");
+            document.getElementById("suhumin").textContent =
+              data.suhumin + " °C";
+            document.getElementById("suhumin").classList.remove("skeleton");
+            document.getElementById("suhurata").textContent =
+              data.suhurata + " °C";
+            document.getElementById("suhurata").classList.remove("skeleton");
+
+            const waktuDate = new Date(data.waktu);
+            const waktu = waktuDate.toLocaleString();
+            document.getElementById("update-time").textContent =
+              "Terakhir diperbarui: " + waktu;
+
+            // Update charts
+            const label = waktuDate.toLocaleTimeString();
+            const vSuhu = parseFloat(data.suhu);
+            const vKelembaban = parseFloat(data.humid);
+            const vLdr = parseFloat(data.kecerahan);
+
+            pushAndTrim(labels, label);
+            pushAndTrim(dataSuhu, isNaN(vSuhu) ? null : vSuhu);
+            pushAndTrim(
+              dataKelembaban,
+              isNaN(vKelembaban) ? null : vKelembaban
+            );
+            pushAndTrim(dataLdr, isNaN(vLdr) ? null : vLdr);
+
+            if (chartSuhu && chartKelembaban && chartLdr) {
+              chartSuhu.data.labels = labels;
+              chartSuhu.data.datasets[0].data = dataSuhu;
+              chartSuhu.update();
+
+              chartKelembaban.data.labels = labels;
+              chartKelembaban.data.datasets[0].data = dataKelembaban;
+              chartKelembaban.update();
+
+              chartLdr.data.labels = labels;
+              chartLdr.data.datasets[0].data = dataLdr;
+              chartLdr.update();
+            }
+
+            // Month-Year
+            const monthList = document.getElementById("month-list");
+            monthList.innerHTML = "";
+            data.month_year_max.forEach((item) => {
+              const li = document.createElement("li");
+              li.textContent = item.month_year;
+              monthList.appendChild(li);
+            });
+
+            // Tabel data detail
+            const tbody = document.querySelector("#tabel-nilai tbody");
+            tbody.innerHTML = "";
+            data.nilai_suhu_max_humid_max.forEach((row) => {
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+            <td>${row.timestamp}</td>
+            <td>${row.idx}</td>
+            <td>${row.suhu}</td>
+            <td>${row.humid}</td>
+            <td>${row.kecerahan}</td>
+          `;
+              tbody.appendChild(tr);
+            });
+          } catch (error) {
+            console.error("Gagal mengambil data dari API:", error);
+            document.getElementById("update-time").textContent =
+              "⚠️ Tidak dapat terhubung ke API";
+            setStatus("offline");
+          }
+        }
+
+        // Theme toggle
+        document
+          .getElementById("toggle-theme")
+          .addEventListener("click", () => {
+            const nowDark = !document.body.classList.contains("dark");
+            const mode = nowDark ? "dark" : "light";
+            localStorage.setItem(THEME_KEY, mode);
+            applyTheme(mode);
+          });
+
+        initTheme();
+        initCharts();
+        fetchData();
+        setInterval(fetchData, 5000);
+      const options = {
+        username: "hendraDarmawan",
+        password: "tjK2Y@72FD3HGU3",
+        clean: true,
+        reconnectPeriod: 1000,
+        connectTimeout: 30 * 1000,
+      };
+
+      const client = mqtt.connect('wss://cd0148d356db4e91b3ebc7d53c4e43a0.s1.eu.hivemq.cloud:8884/mqtt', options);
+
+      client.on('connect', function() {
+        console.log('Terhubung ke HiveMQ Cloud via WebSocket');
+      });
+
+      function kirimRelay(state) {
+        client.publish('hendra/relay', state);
+        console.log('Relay dikirim:', state);
+      }
+      
+      </script>
+    </div>
+  </body>
+</html>
